@@ -3,7 +3,7 @@
 
   Testing notes:
   - First Genesis tx occurs in block 543376
-
+  - First Send tx occurs in block 543409
 */
 
 const level = require('level')
@@ -63,10 +63,15 @@ class SlpIndexer {
       // Loop through the block heights and index every block.
       for (
         let blockHeight = status.syncedBlockHeight;
-        // blockHeight < biggestBlockHeight;
-        blockHeight < status.syncedBlockHeight + 5;
+        blockHeight < biggestBlockHeight;
+        // blockHeight < status.syncedBlockHeight + 5;
         blockHeight++
       ) {
+        // Update and save the sync status.
+        status.syncedBlockHeight = blockHeight
+        await statusDb.put('status', status)
+        console.log(`Indexing block ${blockHeight}`)
+
         // Get the block hash for the current block height.
         const blockHash = await this.bchjs.Blockchain.getBlockHash(blockHeight)
         // console.log("blockHash: ", blockHash);
@@ -74,7 +79,6 @@ class SlpIndexer {
         // Now get the actual data stored in that block.
         const block = await this.bchjs.Blockchain.getBlock(blockHash)
         // console.log("block: ", block);
-        console.log(' ')
 
         // Transactions in the block.
         const txs = block.tx
@@ -104,7 +108,6 @@ class SlpIndexer {
             /* exit quietly */
             // console.log(err);
           }
-          console.log(' ')
         }
       }
     } catch (err) {
@@ -133,8 +136,10 @@ class SlpIndexer {
         console.log(`Genesis tx processed: ${txData.txid}`)
       } else if (slpData.txType.includes('MINT')) {
         console.log('Mint tx')
+        process.exit(0)
       } else if (slpData.txType.includes('SEND')) {
         console.log('Send tx')
+        process.exit(0)
       }
     } catch (err) {
       console.error('Error in processData(): ', err)
