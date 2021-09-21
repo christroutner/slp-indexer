@@ -32,6 +32,9 @@ describe('#Indexer-Genesis', () => {
         txData: genesisMockData.genesisTx
       }
 
+      // Mock dependencies
+      sandbox.stub(uut.util, 'updateBalance').returns()
+
       const result = await uut.addTokenToDB(data)
 
       assert.equal(result, true)
@@ -65,6 +68,9 @@ describe('#Indexer-Genesis', () => {
 
       // Force code path for existing address.
       sandbox.stub(uut.addrDb, 'get').resolves(genesisMockData.mockAddr)
+
+      // Mock dependencies
+      sandbox.stub(uut.util, 'updateBalance').returns()
 
       const result = await uut.addReceiverAddress(data)
       // console.log('result: ', result)

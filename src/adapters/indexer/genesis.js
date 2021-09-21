@@ -32,7 +32,7 @@ class Genesis {
   // created by the Genesis transaction.
   async addReceiverAddress (data) {
     try {
-      const { txData } = data
+      const { slpData, txData } = data
 
       const recvrAddr = txData.vout[1].scriptPubKey.addresses[0]
 
@@ -56,6 +56,9 @@ class Genesis {
 
       // Add the txid to the transaction history.
       this.util.addWithoutDuplicate(txData.txid, addr.txs)
+
+      // Update balances
+      this.util.updateBalance(addr, slpData)
 
       // Save address to the database.
       await this.addrDb.put(recvrAddr, addr)
