@@ -8,6 +8,7 @@
 */
 
 const IndexerUtils = require('./utils')
+const BigNumber = require('bignumber.js')
 
 class Send {
   constructor (localConfig = {}) {
@@ -83,27 +84,27 @@ class Send {
   // Update the address entry in the database, to reflect the spent inputs.
   async subtractTokensFromInputAddr (data) {
     try {
-      const { slpData, txData } = data
-      console.log(`Processing txid: ${txData.txid}`)
-      console.log('slpData: ', slpData)
+      const { txData } = data
+      // console.log(`Processing txid: ${txData.txid}`)
+      // console.log('slpData: ', slpData)
 
       // Loop through each input.
       for (let i = 0; i < txData.vin.length; i++) {
         const thisVin = txData.vin[i]
-        console.log(`thisVin: ${JSON.stringify(thisVin, null, 2)}`)
+        // console.log(`thisVin: ${JSON.stringify(thisVin, null, 2)}`)
 
         // If there are no tokens in this input, then skip it.
         if (!thisVin.tokenQty) continue
 
         // Get the DB entry for this address.
         const addrData = await this.addrDb.get(thisVin.address)
-        console.log('addrData: ', addrData)
+        // console.log('addrData: ', addrData)
 
         // Get the UTXO entry that matches the current input.
         const utxoToDelete = addrData.utxos.filter(
           (x) => x.txid === thisVin.txid && x.vout === thisVin.vout
         )
-        console.log('utxoToDelete: ', utxoToDelete)
+        // console.log('utxoToDelete: ', utxoToDelete)
 
         // This shouldn't happen, but catch a potential corner case.
         if (!utxoToDelete.length) {
@@ -117,12 +118,14 @@ class Send {
           utxoToDelete[0],
           addrData.utxos
         )
-        console.log('addrData: ', addrData)
+        // console.log('addrData after utxo delete: ', addrData)
 
         // Subtract the token balance
-        // this.subtractBalanceFromSend(addrData, utxoToDelete)
+        this.subtractBalanceFromSend(addrData, utxoToDelete[0])
+        // console.log('addrData after subtractBalanceFromSend: ', addrData)
       }
 
+      return true
       // const inputTx = await this.txDb.get()
     } catch (err) {
       console.error('Error in subtractTokensFromInputAddr()')
@@ -131,37 +134,33 @@ class Send {
   }
 
   // Update the balance for the given address with the given token data.
-  subtractBalanceFromSend (addrObj, slpData) {
+  subtractBalanceFromSend (addrObj, utxoToDelete) {
     try {
-      console.log('addrObj: ', addrObj)
-      console.log('slpData: ', slpData)
+      // console.log('addrObj: ', addrObj)
+      // console.log('utxoToDelete: ', utxoToDelete)
 
-      // const tokenId = slpData.tokenId
-      // const qty = slpData.qty
-      //
-      // const tokenExists = addrObj.balances.filter((x) => x.tokenId === tokenId)
-      // // console.log('tokenExists: ', tokenExists)
-      //
-      // if (!tokenExists.length) {
-      //   // Balance for this token does not exist in the address. Add it.
-      //   addrObj.balances.push({ tokenId, qty })
-      //   return true
-      // }
-      //
-      // // Token exists in the address object, update the balance.
-      // for (let i = 0; i < addrObj.balances; i++) {
-      //   const thisBalance = addrObj.balances[i]
-      //
-      //   if (thisBalance.tokenId !== tokenId) continue
-      //
-      //   // bignumber.js addition.
-      //   thisBalance.qty = qty.plus(thisBalance.qty)
-      //
-      //   return true
-      // }
-      //
-      // // This code path shouldn't execute.
-      // return false
+      // Subtract the balance of the utxoToDelete from the balance for that token.
+      for (let i = 0; i < addrObj.balances.length; i++) {
+        const thisBalance = addrObj.balances[i]
+
+        if (thisBalance.tokenId === utxoToDelete.tokenId) {
+          const currentBalance = new BigNumber(thisBalance.qty)
+          const amountToSubtract = new BigNumber(utxoToDelete.qty)
+
+          const difference = currentBalance.minus(amountToSubtract)
+
+          thisBalance.qty = difference.toString()
+
+          // If the balance is zero, remove that entry from the address data.
+          if (difference.isZero()) {
+            addrObj.balances.splice(i, 1)
+          }
+
+          break // Exit the loop
+        }
+      }
+
+      return true
     } catch (err) {
       console.error('Error in indexer/utils.js/updateBalance()')
       throw err

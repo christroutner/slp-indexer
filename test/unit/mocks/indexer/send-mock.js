@@ -118,18 +118,24 @@ mockAddrDbData01 = {
       txid: '4f035d656ed5b6e94a884c88c09a8d2dee9c7e97901cce3adec966115e2a1ba5',
       vout: 1,
       type: 'token',
-      qty: '100'
+      qty: '100',
+      tokenId:
+        '4f035d656ed5b6e94a884c88c09a8d2dee9c7e97901cce3adec966115e2a1ba5'
     },
     {
       txid: '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35',
       vout: 1,
       type: 'token',
-      qty: '10000000'
+      qty: '10000000',
+      tokenId:
+        '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35'
     },
     {
       txid: '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35',
       vout: 2,
-      type: 'baton'
+      type: 'baton',
+      tokenId:
+        '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35'
     }
   ],
   txs: [
