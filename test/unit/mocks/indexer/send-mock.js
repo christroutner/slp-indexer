@@ -107,8 +107,8 @@ mockSlpData01 = {
   txType: 'SEND',
   tokenId: '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35',
   amounts: [
-    new BigNumber({ s: 1, e: 6, c: [Array] }),
-    new BigNumber({ s: 1, e: 6, c: [Array] })
+    new BigNumber({ s: 1, e: 6, c: [5000000], _isBigNumber: true }),
+    new BigNumber({ s: 1, e: 6, c: [5000000], _isBigNumber: true })
   ]
 }
 

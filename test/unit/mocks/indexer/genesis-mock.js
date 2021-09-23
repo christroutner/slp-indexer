@@ -14,7 +14,7 @@ const genesisParse = {
   documentHash: '',
   decimals: 0,
   mintBatonVout: 2,
-  qty: new BigNumber({ s: 1, e: 6, c: [1000000] })
+  qty: new BigNumber({ s: 1, e: 6, c: [1000000], _isBigNumber: true })
 }
 
 const genesisTx = {

@@ -24,59 +24,112 @@ class Send {
 
   async processTx (data) {
     try {
-      // const { slpData, blockHeight, txData } = data
+      // console.log(`send.processTx() data: ${JSON.stringify(data, null, 2)}`)
+      // const { slpData } = data
 
+      // console.log('slpData: ', slpData)
+      // console.log('slpData.amounts: ', slpData.amounts)
+
+      // Subtract the input UTXOs and balances from input addresses.
       await this.subtractTokensFromInputAddr(data)
 
+      // Add the output UTXOs to output addresses
       await this.addTokensFromOutput(data)
-
-      // await this.addTokenToDB(data)
-
-      // await this.addReceiverAddress(data)
-
-      // await this.addBatonAddress(data)
     } catch (err) {
       console.error('Error in genesis.processTx()')
       throw err
     }
   }
 
+  // Update the addresses in the database recieving the outputs of the tx.
   async addTokensFromOutput (data) {
     try {
-      // const { slpData } = data
+      // console.log(`data: ${JSON.stringify(data, null, 2)}`)
+      const { slpData, txData, blockHeight } = data
+
       // Loop through each output in slpData
-      // for (let i = 0; i < slpData.amounts.length; i++) {
-      //   // Update/add reciever address.
-      //   let addr
-      //   try {
-      //     // Address exists in the database
-      //     addr = await this.addrDb.get(recvrAddr)
-      //     console.log('addr exists in the database: ', addr)
-      //   } catch (err) {
-      //     // New address.
-      //     addr = this.util.getNewAddrObj()
-      //   }
-      //
-      //   const utxo = {
-      //     txid: txData.txid,
-      //     vout: 1,
-      //     type: 'token',
-      //     qty: slpData.qty.toString()
-      //   }
-      //   addr.utxos.push(utxo)
-      //   // this.util.addWithoutDuplicate(utxo, addr.utxos)
-      //
-      //   // Add the txid to the transaction history.
-      //   this.util.addWithoutDuplicate(txData.txid, addr.txs)
-      //
-      //   // Update balances
-      //   this.util.updateBalance(addr, slpData)
-      //
-      //   // Save address to the database.
-      //   await this.addrDb.put(recvrAddr, addr)
-      // }
+      for (let i = 0; i < slpData.amounts.length; i++) {
+        const recvrAddr = txData.vout[1 + i].scriptPubKey.addresses[0]
+
+        // Get address from the database, or create a new address object if it
+        // doesn't exist in the database.
+        let addr
+        try {
+          // Address exists in the database
+          addr = await this.addrDb.get(recvrAddr)
+          console.log('addr exists in the database: ', addr)
+        } catch (err) {
+          // New address.
+          addr = this.util.getNewAddrObj()
+        }
+
+        const utxo = {
+          txid: txData.txid,
+          vout: 1 + i,
+          type: 'token',
+          qty: slpData.amounts[i].toString(),
+          tokenId: slpData.tokenId
+        }
+        addr.utxos.push(utxo)
+        // this.util.addWithoutDuplicate(utxo, addr.utxos)
+
+        // Add the txid to the transaction history.
+        const txObj = {
+          txid: txData.txid,
+          height: blockHeight
+        }
+        this.util.addWithoutDuplicate(txObj, addr.txs)
+
+        // Update balances
+        this.updateBalanceFromSend(addr, slpData, i)
+
+        // Save address to the database.
+        await this.addrDb.put(recvrAddr, addr)
+      }
+
+      return true
     } catch (err) {
       console.error('Error in addTokensFromOutput()')
+      throw err
+    }
+  }
+
+  // Update the balance for the given address with the given token data.
+  updateBalanceFromSend (addrObj, slpData, amountIndex) {
+    try {
+      // console.log('addrObj: ', addrObj)
+      // console.log('slpData: ', slpData)
+      // console.log('amountIndex: ', amountIndex)
+
+      const tokenId = slpData.tokenId
+      const qty = slpData.amounts[amountIndex]
+
+      const tokenExists = addrObj.balances.filter((x) => x.tokenId === tokenId)
+      // console.log('tokenExists: ', tokenExists)
+
+      // If the token does not exist in the address object from the database.
+      if (!tokenExists.length) {
+        // Balance for this token does not exist in the address. Add it.
+        addrObj.balances.push({ tokenId, qty: qty.toString() })
+        return true
+      }
+
+      // Token exists in the address object, update the balance.
+      for (let i = 0; i < addrObj.balances; i++) {
+        const thisBalance = addrObj.balances[i]
+
+        if (thisBalance.tokenId !== tokenId) continue
+
+        // bignumber.js addition.
+        thisBalance.qty = qty.plus(thisBalance.qty).toString()
+
+        return true
+      }
+
+      // This code path shouldn't execute.
+      return false
+    } catch (err) {
+      console.error('Error in updateBalanceFromSend()')
       throw err
     }
   }
@@ -123,6 +176,9 @@ class Send {
         // Subtract the token balance
         this.subtractBalanceFromSend(addrData, utxoToDelete[0])
         // console.log('addrData after subtractBalanceFromSend: ', addrData)
+
+        // Save the updated address data to the database.
+        await this.addrDb.put(thisVin.address, addrData)
       }
 
       return true

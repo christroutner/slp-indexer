@@ -82,4 +82,72 @@ describe('#Indexer-Send', () => {
     // TODO: Add another test case like above, but use a SEND transaction
     // that does not delete the element in the balances array.
   })
+
+  describe('#addTokensFromOutput', () => {
+    it('should update address DB with output balance to new addresses', async () => {
+      const data = {
+        slpData: sendMockData.mockSlpData01,
+        txData: sendMockData.mockTxData01,
+        blockHeight: 543409
+      }
+
+      // Force code path for new address.
+      sandbox.stub(uut.addrDb, 'get').rejects(new Error('no address here'))
+
+      const result = await uut.addTokensFromOutput(data)
+
+      assert.equal(result, true)
+    })
+
+    // TODO: Create test case like above, but use code path for existing address.
+  })
+
+  describe('#updateBalanceFromSend', () => {
+    it('should add balance for new token', () => {
+      const addrObj = {
+        utxos: [
+          {
+            txid: '874306bda204d3a5dd15e03ea5732cccdca4c33a52df35162cdd64e30ea7f04e',
+            vout: 2,
+            type: 'token',
+            qty: '5000000',
+            tokenId:
+              '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35'
+          }
+        ],
+        txs: [
+          {
+            txid: '874306bda204d3a5dd15e03ea5732cccdca4c33a52df35162cdd64e30ea7f04e',
+            height: 543409
+          }
+        ],
+        balances: []
+      }
+
+      const slpData = sendMockData.mockSlpData01
+      const amountIndex = 1
+
+      const result = uut.updateBalanceFromSend(addrObj, slpData, amountIndex)
+
+      assert.equal(result, true)
+
+      // console.log('addrObj after test: ', addrObj)
+
+      // Balances array should have one element after this test.
+      assert.equal(addrObj.balances.length, 1)
+
+      // Ensure expected properties in the balances element.
+      assert.property(addrObj.balances[0], 'tokenId')
+      assert.property(addrObj.balances[0], 'qty')
+
+      // Ensure expected values
+      assert.equal(
+        addrObj.balances[0].tokenId,
+        '323a1e35ae0b356316093d20f2d9fbc995d19314b5c0148b78dc8d9c0dab9d35'
+      )
+      assert.equal(addrObj.balances[0].qty, '5000000')
+    })
+
+    // TODO: Add test case for address that already has a balance for the token.
+  })
 })
