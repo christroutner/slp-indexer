@@ -49,7 +49,9 @@ class Genesis {
 
       const utxo = {
         txid: txData.txid,
-        vout: 1
+        vout: 1,
+        type: 'token',
+        qty: slpData.qty.toString()
       }
       addr.utxos.push(utxo)
       // this.util.addWithoutDuplicate(utxo, addr.utxos)
@@ -95,7 +97,8 @@ class Genesis {
 
       const utxo = {
         txid: txData.txid,
-        vout: slpData.mintBatonVout
+        vout: slpData.mintBatonVout,
+        type: 'baton'
       }
       addr.utxos.push(utxo)
 

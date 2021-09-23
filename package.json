@@ -24,7 +24,7 @@
   "repository": "christroutner/slp-indexer",
   "dependencies": {
     "@chris.troutner/ipfs": "2.0.2",
-    "@psf/bch-js": "^4.20.3",
+    "@psf/bch-js": "^4.20.13",
     "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",
     "bignumber.js": "^9.0.1",

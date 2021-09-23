@@ -11,6 +11,7 @@ const BCHJS = require('@psf/bch-js')
 // const BigNumber = require('bignumber.js')
 
 const Genesis = require('./genesis')
+const Send = require('./send')
 
 // const dirName = `${__dirname.toString()}/../../../leveldb/addrs`
 // console.log(dirName)
@@ -30,8 +31,10 @@ const statusDb = level(`${__dirname.toString()}/../../../leveldb/status`, {
 
 class SlpIndexer {
   constructor () {
-    this.bchjs = new BCHJS({ restURL: 'http://192.168.0.36:3000/v5/' })
+    // this.bchjs = new BCHJS({ restURL: 'http://192.168.0.36:3000/v5/' })
+    this.bchjs = new BCHJS({ restURL: 'http://192.168.43.202:3001/v5/' })
     this.genesis = new Genesis({ addrDb, tokenDb })
+    this.send = new Send({ addrDb, tokenDb, txDb })
   }
 
   async start () {
@@ -89,20 +92,24 @@ class SlpIndexer {
           console.log('Inspecting tx: ', tx)
 
           try {
+            // Is the TX an SLP TX? If not, it will throw an error.
             const slpData = await this.bchjs.SLP.Utils.decodeOpReturn(tx)
             console.log('slpData: ', slpData)
 
             console.log('height: ', blockHeight)
 
+            // Get the transaction information.
             const txData = await this.bchjs.Transaction.get(tx)
             console.log('txData: ', txData)
 
+            // Combine available data for further processing.
             const dataToProcess = {
               slpData,
               blockHeight,
               txData
             }
 
+            // Process the identified SLP transaction.
             await this.processData(dataToProcess)
           } catch (err) {
             /* exit quietly */
@@ -119,6 +126,8 @@ class SlpIndexer {
     }
   }
 
+  // This function routes the data for further processing, based on the type of
+  // SLP transaction it is.
   async processData (data) {
     try {
       const { slpData, txData } = data
@@ -131,14 +140,19 @@ class SlpIndexer {
       // Add the transaction to the database.
       await txDb.put(txData.txid, txData)
 
+      // Route the data for processing, based on the type of transaction.
       if (slpData.txType.includes('GENESIS')) {
         await this.genesis.processTx(data)
+
         console.log(`Genesis tx processed: ${txData.txid}`)
       } else if (slpData.txType.includes('MINT')) {
         console.log('Mint tx')
+
         process.exit(0)
       } else if (slpData.txType.includes('SEND')) {
         console.log('Send tx')
+
+        // await this.send.processTx(data)
         process.exit(0)
       }
     } catch (err) {
