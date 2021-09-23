@@ -35,40 +35,18 @@ class IndexerUtils {
     }
   }
 
-  // Update the balance for the given address with the given token data.
-  updateBalance (addrObj, slpData) {
+  // Finds a UTXO element within an array of UTXOs. Returns a new array with
+  // the targeted UTXO deleted.
+  removeUtxoFromArray (utxoObj, array) {
     try {
-      // console.log('addrObj: ', addrObj)
-      // console.log('slpData: ', slpData)
+      const newArray = array.filter(
+        (x) => x.txid !== utxoObj.txid || x.vout !== utxoObj.vout
+      )
+      // console.log('newArray: ', newArray)
 
-      const tokenId = slpData.tokenId
-      const qty = slpData.qty
-
-      const tokenExists = addrObj.balances.filter((x) => x.tokenId === tokenId)
-      // console.log('tokenExists: ', tokenExists)
-
-      if (!tokenExists.length) {
-        // Balance for this token does not exist in the address. Add it.
-        addrObj.balances.push({ tokenId, qty })
-        return true
-      }
-
-      // Token exists in the address object, update the balance.
-      for (let i = 0; i < addrObj.balances; i++) {
-        const thisBalance = addrObj.balances[i]
-
-        if (thisBalance.tokenId !== tokenId) continue
-
-        // bignumber.js addition.
-        thisBalance.qty = qty.plus(thisBalance.qty)
-
-        return true
-      }
-
-      // This code path shouldn't execute.
-      return false
+      return newArray
     } catch (err) {
-      console.error('Error in indexer/utils.js/updateBalance()')
+      console.error('Error in removeObjFromArray()')
       throw err
     }
   }

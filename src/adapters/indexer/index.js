@@ -152,7 +152,7 @@ class SlpIndexer {
       } else if (slpData.txType.includes('SEND')) {
         console.log('Send tx')
 
-        // await this.send.processTx(data)
+        await this.send.processTx(data)
         process.exit(0)
       }
     } catch (err) {

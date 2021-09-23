@@ -11,6 +11,8 @@ const IndexerUtils = require('./utils')
 
 class Send {
   constructor (localConfig = {}) {
+    // TODO: Throw error if database handles are not passed in with localConfig
+
     // LevelDBs
     this.addrDb = localConfig.addrDb
     this.tokenDb = localConfig.tokenDb
@@ -78,28 +80,90 @@ class Send {
     }
   }
 
+  // Update the address entry in the database, to reflect the spent inputs.
   async subtractTokensFromInputAddr (data) {
     try {
-      const { txData } = data
+      const { slpData, txData } = data
+      console.log(`Processing txid: ${txData.txid}`)
+      console.log('slpData: ', slpData)
 
       // Loop through each input.
       for (let i = 0; i < txData.vin.length; i++) {
         const thisVin = txData.vin[i]
+        console.log(`thisVin: ${JSON.stringify(thisVin, null, 2)}`)
 
         // If there are no tokens in this input, then skip it.
         if (!thisVin.tokenQty) continue
 
         // Get the DB entry for this address.
-        // const addrData = await this.addrDb.get(thisVin.address)
+        const addrData = await this.addrDb.get(thisVin.address)
+        console.log('addrData: ', addrData)
+
+        // Get the UTXO entry that matches the current input.
+        const utxoToDelete = addrData.utxos.filter(
+          (x) => x.txid === thisVin.txid && x.vout === thisVin.vout
+        )
+        console.log('utxoToDelete: ', utxoToDelete)
+
+        // This shouldn't happen, but catch a potential corner case.
+        if (!utxoToDelete.length) {
+          throw new Error(
+            'Could not find UTXO in address to delete when processing TX inputs.'
+          )
+        }
 
         // Delete the UTXO that was just spent.
+        addrData.utxos = this.util.removeUtxoFromArray(
+          utxoToDelete[0],
+          addrData.utxos
+        )
+        console.log('addrData: ', addrData)
 
         // Subtract the token balance
+        // this.subtractBalanceFromSend(addrData, utxoToDelete)
       }
 
       // const inputTx = await this.txDb.get()
     } catch (err) {
       console.error('Error in subtractTokensFromInputAddr()')
+      throw err
+    }
+  }
+
+  // Update the balance for the given address with the given token data.
+  subtractBalanceFromSend (addrObj, slpData) {
+    try {
+      console.log('addrObj: ', addrObj)
+      console.log('slpData: ', slpData)
+
+      // const tokenId = slpData.tokenId
+      // const qty = slpData.qty
+      //
+      // const tokenExists = addrObj.balances.filter((x) => x.tokenId === tokenId)
+      // // console.log('tokenExists: ', tokenExists)
+      //
+      // if (!tokenExists.length) {
+      //   // Balance for this token does not exist in the address. Add it.
+      //   addrObj.balances.push({ tokenId, qty })
+      //   return true
+      // }
+      //
+      // // Token exists in the address object, update the balance.
+      // for (let i = 0; i < addrObj.balances; i++) {
+      //   const thisBalance = addrObj.balances[i]
+      //
+      //   if (thisBalance.tokenId !== tokenId) continue
+      //
+      //   // bignumber.js addition.
+      //   thisBalance.qty = qty.plus(thisBalance.qty)
+      //
+      //   return true
+      // }
+      //
+      // // This code path shouldn't execute.
+      // return false
+    } catch (err) {
+      console.error('Error in indexer/utils.js/updateBalance()')
       throw err
     }
   }

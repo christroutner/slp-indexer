@@ -4,6 +4,7 @@
 
 const assert = require('chai').assert
 const sinon = require('sinon')
+const BigNumber = require('bignumber.js')
 
 const Genesis = require('../../../../src/adapters/indexer/genesis')
 const MockLevel = require('../../mocks/indexer/leveldb-mock')
@@ -33,7 +34,7 @@ describe('#Indexer-Genesis', () => {
       }
 
       // Mock dependencies
-      sandbox.stub(uut.util, 'updateBalance').returns()
+      sandbox.stub(uut, 'updateBalanceFromGenesis').returns()
 
       const result = await uut.addTokenToDB(data)
 
@@ -70,7 +71,7 @@ describe('#Indexer-Genesis', () => {
       sandbox.stub(uut.addrDb, 'get').resolves(genesisMockData.mockAddr)
 
       // Mock dependencies
-      sandbox.stub(uut.util, 'updateBalance').returns()
+      sandbox.stub(uut, 'updateBalanceFromGenesis').returns()
 
       const result = await uut.addReceiverAddress(data)
       // console.log('result: ', result)
@@ -115,6 +116,34 @@ describe('#Indexer-Genesis', () => {
       // TODO: Figure out better assertions.
       assert.property(result, 'utxos')
       assert.property(result, 'txs')
+    })
+  })
+
+  describe('#updateBalanceFromGenesis', () => {
+    it('should add a new token balance', () => {
+      const addrObj = {
+        balances: []
+      }
+
+      const slpData = {
+        tokenType: 1,
+        txType: 'GENESIS',
+        ticker: '',
+        name: '',
+        tokenId:
+          '545cba6f72a08cbcb08c7d4e8166267942e8cb9a611328805c62fa538e861ba4',
+        documentUri: '',
+        documentHash: '',
+        decimals: 0,
+        mintBatonVout: 2,
+        qty: new BigNumber({ s: 1, e: 6, c: [1000000] })
+      }
+
+      const result = uut.updateBalanceFromGenesis(addrObj, slpData)
+      // console.log('result: ', result)
+
+      assert.equal(result, true)
+      assert.equal(addrObj.balances.length, 1)
     })
   })
 })

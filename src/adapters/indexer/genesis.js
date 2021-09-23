@@ -32,7 +32,7 @@ class Genesis {
   // created by the Genesis transaction.
   async addReceiverAddress (data) {
     try {
-      const { slpData, txData } = data
+      const { slpData, txData, blockHeight } = data
 
       const recvrAddr = txData.vout[1].scriptPubKey.addresses[0]
 
@@ -41,7 +41,7 @@ class Genesis {
       try {
         // Address exists in the database
         addr = await this.addrDb.get(recvrAddr)
-        console.log('addr exists in the database: ', addr)
+        // console.log('addr exists in the database: ', addr)
       } catch (err) {
         // New address.
         addr = this.util.getNewAddrObj()
@@ -57,10 +57,14 @@ class Genesis {
       // this.util.addWithoutDuplicate(utxo, addr.utxos)
 
       // Add the txid to the transaction history.
-      this.util.addWithoutDuplicate(txData.txid, addr.txs)
+      const txObj = {
+        txid: txData.txid,
+        height: blockHeight
+      }
+      this.util.addWithoutDuplicate(txObj, addr.txs)
 
       // Update balances
-      this.util.updateBalance(addr, slpData)
+      this.updateBalanceFromGenesis(addr, slpData)
 
       // Save address to the database.
       await this.addrDb.put(recvrAddr, addr)
@@ -76,7 +80,7 @@ class Genesis {
   // baton.
   async addBatonAddress (data) {
     try {
-      const { slpData, txData } = data
+      const { slpData, txData, blockHeight } = data
 
       // Exit if the mint baton is null.
       if (slpData.mintBatonVout === null) return
@@ -89,7 +93,7 @@ class Genesis {
       try {
         // Address exists in the database
         addr = await this.addrDb.get(recvrAddr)
-        console.log('addr exists in the database: ', addr)
+        // console.log('addr exists in the database: ', addr)
       } catch (err) {
         // New address.
         addr = this.util.getNewAddrObj()
@@ -103,7 +107,11 @@ class Genesis {
       addr.utxos.push(utxo)
 
       // Add the txid to the transaction history.
-      this.util.addWithoutDuplicate(txData.txid, addr.txs)
+      const txObj = {
+        txid: txData.txid,
+        height: blockHeight
+      }
+      this.util.addWithoutDuplicate(txObj, addr.txs)
 
       // Save address to the database.
       await this.addrDb.put(recvrAddr, addr)
@@ -146,6 +154,44 @@ class Genesis {
       return true
     } catch (err) {
       console.error('Error in genesis.addTokenToDB()')
+      throw err
+    }
+  }
+
+  // Update the balance for the given address with the given token data.
+  updateBalanceFromGenesis (addrObj, slpData) {
+    try {
+      // console.log('addrObj: ', addrObj)
+      // console.log('slpData: ', slpData)
+
+      const tokenId = slpData.tokenId
+      const qty = slpData.qty
+
+      const tokenExists = addrObj.balances.filter((x) => x.tokenId === tokenId)
+      // console.log('tokenExists: ', tokenExists)
+
+      if (!tokenExists.length) {
+        // Balance for this token does not exist in the address. Add it.
+        addrObj.balances.push({ tokenId, qty })
+        return true
+      }
+
+      // Token exists in the address object, update the balance.
+      for (let i = 0; i < addrObj.balances; i++) {
+        const thisBalance = addrObj.balances[i]
+
+        if (thisBalance.tokenId !== tokenId) continue
+
+        // bignumber.js addition.
+        thisBalance.qty = qty.plus(thisBalance.qty)
+
+        return true
+      }
+
+      // This code path shouldn't execute.
+      return false
+    } catch (err) {
+      console.error('Error in indexer/utils.js/updateBalance()')
       throw err
     }
   }
