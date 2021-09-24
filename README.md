@@ -8,11 +8,14 @@ This is a prototype SLP indexer using LevelDB to store the data.
 
 The indexer currently indexes GENESIS and SEND transactions. These libraries are available in the [src/adapters/indexer](./src/adapters/indexer) folder, and their are unit tests for all the libraries.
 
-Next steps would be to add indexing for MINT transactions. Then the indexer simply needs to run until it runs into issues, and each new issue should lead to a cycle of refactoring and unit test writing.
+Next development steps would be:
+
+- Add indexing for MINT transactions.
+- Then the indexer simply needs to run until it runs into issues, and each new issue should lead to a cycle of refactoring and unit test writing.
 
 ## Architecture
 
-This indexer leverages the [bch-js](https://github.com/Permissionless-Software-Foundation/bch-js), which in turn leverages the [slp-parser](https://www.npmjs.com/package/slp-parser), for the indexing. To run the indexer, you should have a fully-synced BCHN full node, and [bch-api](https://github.com/Permissionless-Software-Foundation/bch-api) configured to talk to it.
+This indexer leverages [bch-js](https://github.com/Permissionless-Software-Foundation/bch-js), which in turn leverages the [slp-parser](https://www.npmjs.com/package/slp-parser), for the indexing. To run the indexer, you should have a fully-synced BCHN full node, and [bch-api](https://github.com/Permissionless-Software-Foundation/bch-api) configured to talk to it.
 
 The data is stored in four different [LevelDB](https://www.npmjs.com/package/level) databases (indexes):
 
