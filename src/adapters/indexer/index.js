@@ -148,12 +148,13 @@ class SlpIndexer {
       } else if (slpData.txType.includes('MINT')) {
         console.log('Mint tx')
 
+        console.log(`Mint data: ${JSON.stringify(data, null, 2)}`)
+
         process.exit(0)
       } else if (slpData.txType.includes('SEND')) {
         console.log('Send tx')
 
         await this.send.processTx(data)
-        process.exit(0)
       }
     } catch (err) {
       console.error('Error in processData(): ', err)
