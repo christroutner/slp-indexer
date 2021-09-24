@@ -24,6 +24,8 @@ const config = require('../config') // this first.
 const AdminLib = require('../src/adapters/admin')
 const errorMiddleware = require('../src/controllers/rest-api/middleware/error')
 const { wlogger } = require('../src/adapters/wlogger')
+const SlpIndexer = require('../src/adapters/indexer')
+const slpIndexer = new SlpIndexer()
 
 class Server {
   constructor () {
@@ -97,9 +99,13 @@ class Server {
       // ipfs-coord has a memory leak. This app shuts down after 4 hours. It
       // expects to be run by Docker or pm2, which can automatically restart
       // the app.
-      setTimeout(function () {
-        process.exit(0)
-      }, 60000 * 60 * 4)
+      // setTimeout(function () {
+      //   process.exit(0)
+      // }, 60000 * 60 * 4)
+
+      // Start the indexer.
+
+      slpIndexer.start()
 
       return app
     } catch (err) {
